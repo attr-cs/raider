@@ -5,7 +5,7 @@ import { ArrowRight, Sparkles, Image, Zap, Palette, Users, Shield, Star, Chevron
 function Home() {
   return (
     <AuroraBackground>
-    <div className="min-h-screen md:pt-96 pt-72 bg-background">
+    <div className="min-h-screen md:pt-96 pt-96 bg-background">
     <motion.div
         initial={{ opacity: 0.0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -28,7 +28,7 @@ function Home() {
         </button>
       </motion.div> 
       {/* Hero Section */}
-      <section className="container px-4 py-16 mt-16 md:py-24">
+      <section className="container px-4 py-16 mt-16  md:py-24">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center">
           <div className="space-y-6">
             <div className="inline-flex items-center rounded-full border px-4 py-1.5 text-sm font-medium bg-accent/30 border-accent">
