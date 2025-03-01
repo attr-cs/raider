@@ -21,7 +21,7 @@ const App = () => {
 
     try {
       // Step 1: Fetch the image from the backend
-      const backendImageUrl = `http://localhost:4000/generate-image?prompt=${encodeURIComponent(prompt)}`;
+      const backendImageUrl = `https://raider.up.railway.app/generate-image?prompt=${encodeURIComponent(prompt)}`;
       const imageResponse = await fetch(backendImageUrl);
 
       if (!imageResponse.ok) {
