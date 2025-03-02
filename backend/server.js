@@ -195,7 +195,7 @@ const fetchImageWithRetries = async (url) => {
   throw new Error("Max retries reached. Failed to fetch image.");
   retries = 0;
 };
-app.get("/", (req,re)=>{
+app.get("/", (req,res)=>{
   res.json({"message":"hello"});
 })
 app.get("/generate-image", async (req, res) => {
