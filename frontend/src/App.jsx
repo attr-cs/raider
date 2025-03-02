@@ -31,7 +31,7 @@ function App() {
   const [auth, setAuth] = useRecoilState(authState);
   const setUser = useSetRecoilState(userState);
 
-  const noHeaderPages = ['/signin', '/signup'];
+  const noHeaderPages = ['/signin', '/signup', '/generate'];
   const noFooterPages = ['/signin', '/signup'];
   
   const shouldHideHeader = noHeaderPages.includes(location.pathname);
@@ -59,7 +59,7 @@ function App() {
           setUser(data.data);
         }
       })
-      .catch(console.error);
+      .catch(err => console.error(err));
     }
   }, [setAuth, setUser]);
 

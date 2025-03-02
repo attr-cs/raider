@@ -153,65 +153,96 @@
 //   gracefulShutdown();
 // });
 
-
-
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const connectDb = require("./config/db");
+const Image = require("./models/Image");
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
-// Function to fetch image with infinite retries
-const fetchImageWithRetries = async (url) => {
-  let retries = 0;
-  const maxRetries = 15; // Set a maximum number of retries to avoid infinite loops
-  while (retries < maxRetries) {
-    try {
-      const response = await axios.get(url, {
-        responseType: "stream",
-        headers: {
-          accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-          "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7",
-          priority: "i",
-          referer: "https://fluxvip.netlify.app/",
-          "sec-ch-ua": '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"',
-          "sec-ch-ua-mobile": "?0",
-          "sec-ch-ua-platform": '"Windows"',
-          "sec-fetch-dest": "image",
-          "sec-fetch-mode": "no-cors",
-          "sec-fetch-site": "cross-site",
-          "sec-fetch-storage-access": "active",
-          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
-        }
-      });
-      return response.data; // Return the image stream if successful
-    } catch (error) {
-      retries++;
-      console.warn(`Attempt ${retries} failed. Retrying...`);
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+connectDb();
+
+app.post("/api/save-image-details", async (req, res) => {
+  try {
+    const { imgbbUrl, prompt, model, aspectRatio, seed } = req.body;
+
+    // Validate required fields
+    if (!imgbbUrl || !prompt || !model || !aspectRatio || !seed) {
+      return res.status(400).json({ error: "All fields are required." });
     }
+
+    // Create a new image document
+    const newImage = new Image({
+      imgbbUrl,
+      prompt,
+      model,
+      aspectRatio,
+      seed,
+    });
+
+    // Save the document to the database
+    await newImage.save();
+
+    res.status(201).json({ message: "Image details saved successfully.", data: newImage });
+  } catch (error) {
+    console.error("Error saving image details:", error);
+    res.status(500).json({ error: "Failed to save image details." });
   }
-  throw new Error("Max retries reached. Failed to fetch image.");
-  retries = 0;
-};
-app.get("/", (req,res)=>{
-  res.json({"message":"hello"});
+});
+
+app.get('/',(req,res)=>{
+  res.json({msg:"Server is live!"})
 })
+
+// Generate image using the Imagine2 API
 app.get("/generate-image", async (req, res) => {
   try {
-    const prompt = req.query.prompt || "cute cat";
-    const imageUrl = `https://imagegenai.techzone.workers.dev/generate-image?prompt=${encodeURIComponent(prompt)}`;
+    const { prompt, size = "1:1", seed = Date.now(), model = "flux-realism" } = req.query;
 
-    // Step 1: Fetch the image with retries
-    const imageStream = await fetchImageWithRetries(imageUrl);
+    // Validate aspect ratio
+    const validSizes = ["1:1", "16:9", "9:16", "21:9", "9:21", "1:2", "2:1"];
+    if (!validSizes.includes(size)) {
+      throw new Error("Invalid aspect ratio");
+    }
 
-    // Step 2: Stream the image directly to the frontend
-    res.set("Content-Type", "image/jpeg");
-    imageStream.pipe(res);
+    // Validate model
+    const validModels = [
+      "flux",
+      "flux-realism",
+      "flux-4o",
+      "flux-pixel",
+      "flux-3d",
+      "flux-anime",
+      "flux-disney",
+      "any-dark",
+      "stable-diffusion-xl-lightning",
+      "stable-diffusion-xl-base",
+    ];
+    if (!validModels.includes(model)) {
+      throw new Error("Invalid model");
+    }
+
+    // Construct the URL for the Imagine2 API
+    const imageUrl = `https://api.airforce/v1/imagine2?prompt=${encodeURIComponent(prompt)}&size=${size}&seed=${seed}&model=${model}`;
+
+    // Fetch the image from the Imagine2 API
+    const response = await axios.get(imageUrl, {
+      responseType: "stream",
+      headers: {
+        accept: "image/png",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+      },
+    });
+
+    // Stream the image directly to the frontend
+    res.set("Content-Type", "image/png");
+    response.data.pipe(res);
   } catch (error) {
     console.error("Failed to fetch image:", error);
-    res.status(500).json({ error: "Failed to fetch image. Please try again later." });
+    res.status(500).json({ error: error.message || "Failed to fetch image. Please try again later." });
   }
 });
 
