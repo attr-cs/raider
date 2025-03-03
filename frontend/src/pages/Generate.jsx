@@ -28,9 +28,9 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import {Toaster} from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/toaster";
 
-const App = () => {
+const Generate = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [imgbbUrl, setImgbbUrl] = useState("");
   const [prompt, setPrompt] = useState("cute cat");
@@ -72,7 +72,7 @@ const App = () => {
 
     try {
       const seed = Date.now();
-      const backendImageUrl = `http://localhost:4000/generate-image?prompt=${encodeURIComponent(
+      const backendImageUrl = `https://raider.onrender.com/generate-image?prompt=${encodeURIComponent(
         prompt
       )}&size=${aspectRatio}&seed=${seed}&model=${model}`;
       const imageResponse = await fetch(backendImageUrl);
@@ -93,7 +93,9 @@ const App = () => {
         title: "Success!",
         description: "Your image has been generated.",
       });
-      
+      setIsLoading(false);
+      setIsImageLoading(false);
+      setPrompt(""); // Clear the prompt after image generation
       // Step 2: Upload the image to ImgBB
       const formData = new FormData();
       formData.append("image", imageBlob);
@@ -195,7 +197,7 @@ const App = () => {
     <div
       className={`min-h-screen ${
         theme === "dark" ? "bg-slate-950 text-slate-100" : "bg-white text-gray-900"
-      } flex flex-col items-center justify-center md:pt-4 pt-16 p-4 transition-colors duration-300`}
+      } flex flex-col items-center justify-center md:pt-4 pt-8 p-4 transition-colors duration-300`}
     >
       <Toaster/>
       {/* Theme Toggle Button */}
@@ -267,7 +269,7 @@ const App = () => {
                   className={`${
                     theme === "dark"
                       ? "bg-slate-800 border-slate-700"
-                      : "bg-white border-gray-200"
+                      : "bg-white border-gray-200 text-slate-800"
                   }`}
                 >
                   <SelectItem value="1:1" className="text-slate-100">
@@ -308,7 +310,7 @@ const App = () => {
                   className={`${
                     theme === "dark"
                       ? "bg-slate-800 border-slate-700"
-                      : "bg-white border-gray-200"
+                      : "bg-white border-gray-200 text-slate-800"
                   }`}
                 >
                   <SelectItem value="flux" className="text-slate-100">
@@ -516,4 +518,14 @@ const App = () => {
   );
 };
 
-export default App;
+export default Generate;
+
+
+
+
+
+
+
+
+
+

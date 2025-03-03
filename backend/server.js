@@ -164,6 +164,52 @@ app.use(cors());
 app.use(express.json());
 
 connectDb();
+// pollination 
+// https://image.pollinations.ai/prompt/water%20drop?width=1024&height=900&seed=4245&nologo=true&enhance=true&model=turbo
+//  models = flux and turbo
+// gives response in streaming image
+
+// websim ai
+// giver response like this
+// {
+//   "url": "https://page-images.websim.ai/laksjdsdfsasdsjlaskdjdfsdfsdfldsfkasj_b76f49d527dda.jpg"
+// }
+// const axios = require('axios');
+// let data = '{"project_id":"kx0m131_rzz66qb2xoy7","prompt":"cute cat","aspect_ratio":"1:1"}';
+
+// let config = {
+//   method: 'post',
+//   maxBodyLength: Infinity,
+//   url: 'https://websim.ai/api/v1/inference/run_image_generation',
+//   headers: { 
+//     'accept': '*/*', 
+//     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7', 
+//     'content-type': 'text/plain;charset=UTF-8', 
+//     'origin': 'https://websim.ai', 
+//     'priority': 'u=1, i', 
+//     'referer': 'https://websim.ai/@ISWEARIAMNOTADDICTEDTOPILLOW/ai-image-prompt-generator', 
+//     'sec-ch-ua': '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"', 
+//     'sec-ch-ua-mobile': '?0', 
+//     'sec-ch-ua-platform': '"Windows"', 
+//     'sec-fetch-dest': 'empty', 
+//     'sec-fetch-mode': 'cors', 
+//     'sec-fetch-site': 'same-origin', 
+//     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36', 
+//     'websim-flags': '', 
+//     'Cookie': 'theme=auto; nosleep=1; ph_phc_VHMOlrdxAbgSZHeF0SdSf07LZLRLAg5pZuTHkJGn050_posthog=%7B%22distinct_id%22%3A%2201955b70-d715-730e-a05e-c9049e7ec2cb%22%2C%22%24sesid%22%3A%5B1740996062046%2C%2201955b70-d70f-75f9-bbfc-0d388d74c02d%22%2C1740995876623%5D%7D'
+//   },
+//   data : data
+// };
+
+// axios.request(config)
+// .then((response) => {
+//   console.log(JSON.stringify(response.data));
+// })
+// .catch((error) => {
+//   console.log(error);
+// });
+
+
 
 app.post("/api/save-image-details", async (req, res) => {
   try {
@@ -243,6 +289,32 @@ app.get("/generate-image", async (req, res) => {
   } catch (error) {
     console.error("Failed to fetch image:", error);
     res.status(500).json({ error: error.message || "Failed to fetch image. Please try again later." });
+  }
+});
+
+// Gallery Route
+app.get("/gallery", async (req, res) => {
+  try {
+    const { page = 1, limit = 40 } = req.query; // Default to page 1 and 10 items per page
+
+    // Fetch paginated images from the database
+    const images = await Image.find()
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .skip((page - 1) * limit) // Skip previous pages
+      .limit(parseInt(limit)) // Limit the number of results
+      .select("imgbbUrl prompt model aspectRatio seed createdAt"); // Select only necessary fields
+
+    // Count total images for pagination metadata
+    const totalImages = await Image.countDocuments();
+
+    res.json({
+      images,
+      totalPages: Math.ceil(totalImages / limit),
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    console.error("Failed to fetch gallery images:", error);
+    res.status(500).json({ error: "Failed to fetch gallery images. Please try again later." });
   }
 });
 

@@ -14,8 +14,10 @@ import Navbar from './components/Navbar';
 
 // Pages
 // import Dashboard from './pages/Dashboard';
-// import Gallery from './pages/Gallery';
+import Gallery from './pages/Gallery';
 import Generate from './pages/Generate';
+import Uncensored from './pages/Uncensored';
+// import Fastest from './pages/Fastest';
 // import Profile from './pages/Profile';
 // import Settings from './pages/Settings';
 // import Pricing from './pages/Pricing';
@@ -31,7 +33,7 @@ function App() {
   const [auth, setAuth] = useRecoilState(authState);
   const setUser = useSetRecoilState(userState);
 
-  const noHeaderPages = ['/signin', '/signup', '/generate'];
+  const noHeaderPages = ['/signin', '/signup', '/generate', '/uncensored', '/gallery'];
   const noFooterPages = ['/signin', '/signup'];
   
   const shouldHideHeader = noHeaderPages.includes(location.pathname);
@@ -80,7 +82,10 @@ function App() {
               {/* Temporarily removed protection */}
               {/* <Route path="/dashboard" element={<Dashboard />} /> */}
               <Route path="/generate" element={<Generate />} />
-              {/* <Route path="/gallery" element={<Gallery />} /> */}
+              <Route path="/uncensored" element={<Uncensored />} />
+              
+
+              <Route path="/gallery" element={<Gallery />} />
               {/* <Route path="/profile" element={<Profile />} /> */}
               {/* <Route path="/settings" element={<Settings />} /> */}
               
