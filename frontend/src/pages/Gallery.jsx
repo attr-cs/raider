@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog"; // Adjust import paths
-import { Download, Maximize, MoreVertical, Copy, Loader, Clock, Image, Ruler, Sparkles } from "lucide-react";
+import { Download, Maximize, MoreVertical, Copy, Loader, Clock, Image, Ruler, Sparkles, MousePointerClick } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,7 +21,7 @@ const GalleryPage = () => {
     if (page > totalPages) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`https://raider.onrender.com/gallery?page=${page}&limit=30`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/gallery?page=${page}&limit=30`);
       const data = await response.json();
       setImages((prevImages) => {
         const uniqueImages = [...new Map([...prevImages, ...data.images].map(img => [img._id, img])).values()];
@@ -55,13 +55,15 @@ const GalleryPage = () => {
   }, [isLoading]);
 
   return (
-    <div className="p-4 bg-white pt-32 min-h-screen dark:bg-black flex flex-col  justify-center">
+    <div className=" bg-white pt-24 min-h-screen dark:bg-black flex flex-col  justify-center">
       <Toaster/>
       <h1 className="text-6xl font-bold mb-4 text-black dark:text-slate-300 text-center">Gallery</h1>
-      <p className="text-gray-600 mb-8 text-center dark:text-slate-400">Explore a collection of generated images.</p>
+      <p className="text-gray-600 mb-2 text-center dark:text-slate-400">Explore a collection of generated images. </p>
+      <p className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 font-bold mb-12 text-center"><strong className="text-blue-500"><MousePointerClick strokeWidth={3} className="h-6 mr-2 w-6 inline-block"/></strong>Click to enlarge</p>
+      
       
       {/* Gallery Grid */}
-      <div className="grid pt-4 px-15 mx-auto w-[800px] grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
+      <div className="grid pt-4  mx-auto w-full grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5  gap-1">
         {images.map((image) => (
           <div
             key={image._id}
