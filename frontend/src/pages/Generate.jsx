@@ -40,7 +40,7 @@ const Generate = () => {
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [model, setModel] = useState("flux-realism");
   const [downloadUrl, setDownloadUrl] = useState("");
-  const [theme, setTheme] = useState("dark"); // 'dark' or 'light'
+  const [theme, setTheme] = useState("light"); // 'dark' or 'light'
   const { toast } = useToast(); // Import useToast hook
 
   // Toggle Theme with Smooth Animation
@@ -72,7 +72,7 @@ const Generate = () => {
 
     try {
       const seed = Date.now();
-      const backendImageUrl = `https://raider.onrender.com/generate-image?prompt=${encodeURIComponent(
+      const backendImageUrl = `${import.meta.env.VITE_BACKEND_URL}/generate-image?prompt=${encodeURIComponent(
         prompt
       )}&size=${aspectRatio}&seed=${seed}&model=${model}`;
       const imageResponse = await fetch(backendImageUrl);
@@ -101,7 +101,7 @@ const Generate = () => {
       formData.append("image", imageBlob);
 
       const imgbbResponse = await fetch(
-        `https://api.imgbb.com/1/upload?key=78026bbefd12af05a47cbdfffe141f83`, // Your ImgBB API key
+        `${import.meta.env.VITE_IMGBB_URL}/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`, // Your ImgBB API key
         {
           method: "POST",
           body: formData
@@ -117,14 +117,18 @@ const Generate = () => {
 
       // Step 4: Replace the local image URL with the ImgBB URL
       const newImgbbUrl = imgbbData.data.url;
+   
     setImgbbUrl(newImgbbUrl);
-      const saveResponse = await fetch("https://raider.onrender.com/api/save-image-details", {
+      const saveResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/save-image-details`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          imgbbUrl:newImgbbUrl,
+          newImageUrl:newImgbbUrl,
+          imgbbId:imgbbData.data.id,
+          displayUrl:imgbbData.data.display_url,
+          thumbnailUrl:imgbbData.data.thumb.url,
           prompt,
           model,
           aspectRatio,
@@ -257,40 +261,38 @@ const Generate = () => {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Select value={aspectRatio} onValueChange={setAspectRatio}>
                 <SelectTrigger
-                  className={`${
-                    theme === "dark"
-                      ? "bg-slate-800 text-slate-100 border-slate-700 focus:ring-slate-500"
-                      : "bg-gray-100 text-gray-900 border-gray-300 focus:ring-blue-500"
-                  }`}
+                  className={`${theme === "dark"
+                    ? "bg-slate-800 text-slate-100 border-slate-700 focus:ring-slate-500"
+                    : "bg-gray-100 text-gray-900 border-gray-300 focus:ring-blue-500"
+                }`}
                 >
                   <SelectValue placeholder="Aspect Ratio" />
                 </SelectTrigger>
                 <SelectContent
-                  className={`${
-                    theme === "dark"
-                      ? "bg-slate-800 border-slate-700"
-                      : "bg-white border-gray-200 text-slate-800"
-                  }`}
+                  className={`${theme === "dark"
+                    ? "bg-slate-800 border-slate-700"
+                    : "bg-white border-gray-200 text-slate-800"
+                }`}
                 >
-                  <SelectItem value="1:1" className="text-slate-100">
+                  <SelectItem value="1:1" >
                     1:1 (Square)
                   </SelectItem>
-                  <SelectItem value="16:9" className="text-slate-100">
+                  <SelectItem value="16:9" >
                     16:9 (Widescreen)
                   </SelectItem>
-                  <SelectItem value="9:16" className="text-slate-100">
+                  <SelectItem value="9:16" >
                     9:16 (Portrait)
                   </SelectItem>
-                  <SelectItem value="21:9" className="text-slate-100">
+                  <SelectItem value="21:9" >
                     21:9 (Ultrawide)
                   </SelectItem>
-                  <SelectItem value="9:21" className="text-slate-100">
+                  <SelectItem value="9:21" >
                     9:21 (Tall)
                   </SelectItem>
-                  <SelectItem value="1:2" className="text-slate-100">
+                  <SelectItem value="1:2" >
                     1:2 (Portrait)
                   </SelectItem>
-                  <SelectItem value="2:1" className="text-slate-100">
+                  <SelectItem value="2:1" >
                     2:1 (Landscape)
                   </SelectItem>
                 </SelectContent>
@@ -298,54 +300,52 @@ const Generate = () => {
 
               <Select value={model} onValueChange={setModel}>
                 <SelectTrigger
-                  className={`${
-                    theme === "dark"
-                      ? "bg-slate-800 text-slate-100 border-slate-700 focus:ring-slate-500"
-                      : "bg-gray-100 text-gray-900 border-gray-300 focus:ring-blue-500"
-                  }`}
+                  className={`${theme === "dark"
+                    ? "bg-slate-800 text-slate-100 border-slate-700 focus:ring-slate-500"
+                    : "bg-gray-100 text-gray-900 border-gray-300 focus:ring-blue-500"
+                }`}
                 >
                   <SelectValue placeholder="Model" />
                 </SelectTrigger>
                 <SelectContent
-                  className={`${
-                    theme === "dark"
-                      ? "bg-slate-800 border-slate-700"
-                      : "bg-white border-gray-200 text-slate-800"
-                  }`}
+                  className={`${theme === "dark"
+                    ? "bg-slate-800 border-slate-700"
+                    : "bg-white border-gray-200 text-slate-800"
+                }`}
                 >
-                  <SelectItem value="flux" className="text-slate-100">
+                  <SelectItem value="flux" >
                     Flux
                   </SelectItem>
-                  <SelectItem value="flux-realism" className="text-slate-100">
+                  <SelectItem value="flux-realism" >
                     Flux Realism
                   </SelectItem>
-                  <SelectItem value="flux-4o" className="text-slate-100">
+                  <SelectItem value="flux-4o" >
                     Flux 4o
                   </SelectItem>
-                  <SelectItem value="flux-pixel" className="text-slate-100">
+                  <SelectItem value="flux-pixel" >
                     Flux Pixel
                   </SelectItem>
-                  <SelectItem value="flux-3d" className="text-slate-100">
+                  <SelectItem value="flux-3d" >
                     Flux 3D
                   </SelectItem>
-                  <SelectItem value="flux-anime" className="text-slate-100">
+                  <SelectItem value="flux-anime" >
                     Flux Anime
                   </SelectItem>
-                  <SelectItem value="flux-disney" className="text-slate-100">
+                  <SelectItem value="flux-disney" >
                     Flux Disney
                   </SelectItem>
-                  <SelectItem value="any-dark" className="text-slate-100">
+                  <SelectItem value="any-dark" >
                     Any Dark
                   </SelectItem>
                   <SelectItem
                     value="stable-diffusion-xl-lightning"
-                    className="text-slate-100"
+                    
                   >
                     SDXL Lightning
                   </SelectItem>
                   {/* <SelectItem
                     value="stable-diffusion-xl-base"
-                    className="text-slate-100"
+                    
                   >
                     SDXL Base
                   </SelectItem> */}
@@ -439,11 +439,10 @@ const Generate = () => {
                   </Button>
                 </DialogTrigger>
                 <DialogContent
-                  className={`max-w-4xl ${
-                    theme === "dark"
-                      ? "bg-slate-900 border-slate-800"
-                      : "bg-black border-gray-200"
-                  }`}
+                  className={`max-w-4xl border-gray-200 ${theme === "dark"
+                    ? "bg-slate-900 "
+                    : "bg-black "
+                }`}
                 >
           
 

@@ -17,7 +17,7 @@ import Navbar from './components/Navbar';
 import Gallery from './pages/Gallery';
 import Generate from './pages/Generate';
 import Uncensored from './pages/Uncensored';
-// import Fastest from './pages/Fastest';
+import Fastest from './pages/Fastest';
 // import Profile from './pages/Profile';
 // import Settings from './pages/Settings';
 // import Pricing from './pages/Pricing';
@@ -33,7 +33,7 @@ function App() {
   const [auth, setAuth] = useRecoilState(authState);
   const setUser = useSetRecoilState(userState);
 
-  const noHeaderPages = ['/signin', '/signup', '/generate', '/uncensored', '/gallery'];
+  const noHeaderPages = ['/signin', '/signup', '/generate', '/uncensored', '/gallery', '/fastest'];
   const noFooterPages = ['/signin', '/signup'];
   
   const shouldHideHeader = noHeaderPages.includes(location.pathname);
@@ -86,6 +86,7 @@ function App() {
               
 
               <Route path="/gallery" element={<Gallery />} />
+              <Route path="/fastest" element={<Fastest />} />
               {/* <Route path="/profile" element={<Profile />} /> */}
               {/* <Route path="/settings" element={<Settings />} /> */}
               

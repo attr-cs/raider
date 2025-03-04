@@ -22,12 +22,12 @@ const imageSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
+    newImageUrl: String, // ✅ Added field
+    imgbbId: String, // ✅ Added field
+    displayUrl: String, // ✅ Added field
+    thumbnailUrl: String, // ✅ Added field
   },
-  { timestamps: true } // Automatically adds `createdAt` and `updatedAt` fields
+  { timestamps: true } // Automatically adds `createdAt` and `updatedAt`
 );
 
 module.exports = mongoose.model("Image", imageSchema);

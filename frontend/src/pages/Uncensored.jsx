@@ -40,7 +40,7 @@ const Uncensored = () => {
     const [aspectRatio, setAspectRatio] = useState("1:1");
     const [model, setModel] = useState("turbo"); // Default to 'turbo'
     const [downloadUrl, setDownloadUrl] = useState("");
-    const [theme, setTheme] = useState("dark"); // 'dark' or 'light'
+    const [theme, setTheme] = useState("light"); // 'dark' or 'light'
     const [seed, setSeed] = useState(Date.now()); // New: Seed value
     const [width, setWidth] = useState(1080); // New: Width value
     const [height, setHeight] = useState(1080); // New: Height value
@@ -77,7 +77,7 @@ const Uncensored = () => {
 
         try {
             setSeed(Date.now());
-            const backendImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+            const backendImageUrl = `${import.meta.env.VITE_POLLINATION_URL}/${encodeURIComponent(
                 prompt
             )}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true&model=${model}`;
             const imageResponse = await fetch(backendImageUrl);
@@ -105,7 +105,7 @@ const Uncensored = () => {
             formData.append("image", imageBlob);
 
             const imgbbResponse = await fetch(
-                `https://api.imgbb.com/1/upload?key=78026bbefd12af05a47cbdfffe141f83`, // Your ImgBB API key
+                `${import.meta.env.VITE_IMGBB_URL}/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`, // Your ImgBB API key
                 {
                     method: "POST",
                     body: formData,
@@ -123,17 +123,20 @@ const Uncensored = () => {
             const newImgbbUrl = imgbbData.data.url;
             setImgbbUrl(newImgbbUrl);
 
-            const saveResponse = await fetch("https://raider.onrender.com/api/save-image-details", {
+            const saveResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/save-image-details`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    imgbbUrl: newImgbbUrl,
-                    prompt,
-                    model,
-                    aspectRatio,
-                    seed
+                newImageUrl:newImgbbUrl,
+                  imgbbId:imgbbData.data.id,
+                  displayUrl:imgbbData.data.display_url,
+                  thumbnailUrl:imgbbData.data.thumb.url,
+                  prompt,
+                  model,
+                  aspectRatio,
+                  seed,
                 }),
             });
 
@@ -426,9 +429,9 @@ const Uncensored = () => {
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent
-                                    className={`max-w-4xl ${theme === "dark"
-                                            ? "bg-slate-900 border-slate-800"
-                                            : "bg-black border-gray-200"
+                                    className={`max-w-4xl border-gray-200 ${theme === "dark"
+                                            ? "bg-slate-900 "
+                                            : "bg-black "
                                         }`}
                                 >
 

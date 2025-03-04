@@ -159,6 +159,9 @@ const axios = require("axios");
 const connectDb = require("./config/db");
 const Image = require("./models/Image");
 
+  
+  const fs = require("fs");
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -209,26 +212,69 @@ connectDb();
 //   console.log(error);
 // });
 
+app.post('/generate-fast', async (req, res) => {
+  try {
+      const { prompt, aspectRatio } = req.body;
 
+      // Validate input
+      if (!prompt || !aspectRatio) {
+          return res.status(400).json({ error: 'Missing required fields: prompt and aspectRatio' });
+      }
+
+      // Prepare data for the external API
+      const data = JSON.stringify({
+          project_id: "kx0m131_rzz66qb2xoy7",
+          prompt,
+          aspect_ratio: aspectRatio,
+      });
+
+      const config = {
+          method: 'post',
+          url: 'https://websim.ai/api/v1/inference/run_image_generation',
+          headers: {
+              'accept': '*/*',
+              'content-type': 'text/plain;charset=UTF-8',
+          },
+          data,
+      };
+
+      // Call the external API
+      const response = await axios(config);
+
+      // Extract the image URL from the response
+      const imageUrl = response.data.url;
+
+      // Return the image URL to the frontend
+      res.json({ imageUrl });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Failed to generate image' });
+  }
+});
 
 app.post("/api/save-image-details", async (req, res) => {
   try {
-    const { imgbbUrl, prompt, model, aspectRatio, seed } = req.body;
-
+    
+    const { imgbbId ,newImageUrl, displayUrl, thumbnailUrl, prompt, model, aspectRatio, seed } = req.body;
     // Validate required fields
-    if (!imgbbUrl || !prompt || !model || !aspectRatio || !seed) {
+    if (!newImageUrl || !prompt || !model || !aspectRatio || !seed || !imgbbId || !displayUrl || !thumbnailUrl) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
     // Create a new image document
     const newImage = new Image({
-      imgbbUrl,
-      prompt,
-      model,
-      aspectRatio,
-      seed,
+      
+      imgbbUrl: newImageUrl,
+      newImageUrl: newImageUrl,
+      imgbbId: imgbbId,
+      displayUrl: displayUrl,
+      thumbnailUrl: thumbnailUrl,
+      prompt: prompt,
+      model: model,
+      aspectRatio: aspectRatio,
+      seed: seed,
     });
-
+   
     // Save the document to the database
     await newImage.save();
 
@@ -295,15 +341,15 @@ app.get("/generate-image", async (req, res) => {
 // Gallery Route
 app.get("/gallery", async (req, res) => {
   try {
-    const { page = 1, limit = 40 } = req.query; // Default to page 1 and 10 items per page
+    const { page = 1, limit = 30 } = req.query; // Default to page 1 and 10 items per page
 
     // Fetch paginated images from the database
     const images = await Image.find()
       .sort({ createdAt: -1 }) // Sort by newest first
       .skip((page - 1) * limit) // Skip previous pages
       .limit(parseInt(limit)) // Limit the number of results
-      .select("imgbbUrl prompt model aspectRatio seed createdAt"); // Select only necessary fields
-
+      .select("displayUrl thumbnailUrl prompt model aspectRatio seed newImageUrl imgbbId createdAt"); // Select only necessary fields
+      
     // Count total images for pagination metadata
     const totalImages = await Image.countDocuments();
 
@@ -315,6 +361,146 @@ app.get("/gallery", async (req, res) => {
   } catch (error) {
     console.error("Failed to fetch gallery images:", error);
     res.status(500).json({ error: "Failed to fetch gallery images. Please try again later." });
+  }
+});
+
+
+app.get("/uploadImage", async (req, res) => {
+  try {
+    // Fetch the specific image by ID
+    const image = await Image.findById("67c5321c3021865a3c21b5f8");
+
+    if (!image || !image.imgbbUrl) {
+      return res.status(404).json({ success: false, message: "Image not found in MongoDB!" });
+    }
+
+    const imageUrl = image.imgbbUrl;
+
+    // ✅ Fetch the Image Data as a Buffer
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64Image = Buffer.from(arrayBuffer).toString("base64");
+
+    // ✅ Upload to ImgBB
+    const formData = new URLSearchParams();
+    formData.append("image", base64Image);
+
+    const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=78026bbefd12af05a47cbdfffe141f83`, {
+      method: "POST",
+      body: formData,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+
+    const imgbbData = await imgbbResponse.json();
+
+    if (imgbbData.success) {
+      // ✅ Update MongoDB with new fields
+      const updatedImage = await Image.findByIdAndUpdate(
+        image._id,
+        {
+          newImageUrl: imgbbData.data.url,
+          imgbbId: imgbbData.data.id,
+          displayUrl: imgbbData.data.display_url,
+          thumbnailUrl: imgbbData.data.thumb.url,
+        },
+        { new: true } // ✅ Ensures the updated document is returned
+      );
+
+      return res.json({
+        success: true,
+        message: "Image updated successfully!",
+        oldImageUrl: image.imgbbUrl,
+        newImageUrl: updatedImage.newImageUrl,
+        imgbbId: updatedImage.imgbbId,
+        displayUrl: updatedImage.displayUrl,
+        thumbnailUrl: updatedImage.thumbnailUrl,
+        updatedRecord: updatedImage, // ✅ Returns the updated document
+      });
+    } else {
+      return res.status(400).json({ success: false, message: "Failed to upload image!", error: imgbbData });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+  }
+});
+app.get("/updateAllImages", async (req, res) => {
+  try {
+    const images = await Image.find(); // Fetch all records
+    let updatedCount = 0;
+    let failedCount = 0;
+    let recordNumber = 1; // ✅ Track record number
+
+    // ✅ Iterate through each image record
+    for (const image of images) {
+      console.log(`Processing Record #${recordNumber} - ID: ${image._id}`);
+
+      if (!image.imgbbUrl) {
+        console.log(`❌ Record #${recordNumber} Skipped: No imgbbUrl found`);
+        failedCount++;
+        recordNumber++;
+        continue;
+      }
+
+      try {
+        // Fetch the image data
+        const response = await fetch(image.imgbbUrl);
+        if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+
+        const arrayBuffer = await response.arrayBuffer();
+        const base64Image = Buffer.from(arrayBuffer).toString("base64");
+
+        // ✅ Upload to ImgBB
+        const formData = new URLSearchParams();
+        formData.append("image", base64Image);
+
+        const imgbbResponse = await fetch(
+          `https://api.imgbb.com/1/upload?key=78026bbefd12af05a47cbdfffe141f83`,
+          {
+            method: "POST",
+            body: formData,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          }
+        );
+
+        const imgbbData = await imgbbResponse.json();
+
+        if (imgbbData.success) {
+          // ✅ Update MongoDB with new fields
+          await Image.findByIdAndUpdate(image._id, {
+            newImageUrl: imgbbData.data.url,
+            imgbbId: imgbbData.data.id,
+            displayUrl: imgbbData.data.display_url,
+            thumbnailUrl: imgbbData.data.thumb.url,
+          });
+
+          updatedCount++;
+          console.log(`✅ Record #${recordNumber} Updated Successfully`);
+        } else {
+          failedCount++;
+          console.log(`❌ Record #${recordNumber} Failed to Upload`);
+        }
+      } catch (err) {
+        failedCount++;
+        console.log(`❌ Record #${recordNumber} Error: ${err.message}`);
+      }
+
+      recordNumber++; // ✅ Increment record number
+    }
+
+    console.log(`🎉 Bulk Update Completed! ✅ Updated: ${updatedCount} ❌ Failed: ${failedCount}`);
+
+    return res.json({
+      success: true,
+      message: "Bulk update completed!",
+      totalRecords: images.length,
+      updatedRecords: updatedCount,
+      failedRecords: failedCount,
+    });
+  } catch (error) {
+    console.error("❌ Internal Server Error:", error.message);
+    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
   }
 });
 
