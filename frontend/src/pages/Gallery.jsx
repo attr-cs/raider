@@ -21,7 +21,7 @@ const GalleryPage = () => {
     if (page > totalPages) return;
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:4000/gallery?page=${page}&limit=30`);
+      const response = await fetch(`https://raider.onrender.com/gallery?page=${page}&limit=30`);
       const data = await response.json();
       setImages((prevImages) => {
         const uniqueImages = [...new Map([...prevImages, ...data.images].map(img => [img._id, img])).values()];
