@@ -291,8 +291,8 @@ const Fastest = () => {
                                     <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
                                     <SelectItem value="21:9">21:9 (Ultrawide)</SelectItem>
                                     <SelectItem value="9:21">9:21 (Tall)</SelectItem>
-                                    <SelectItem value="1:2">1:2 (Portrait)</SelectItem>
-                                    <SelectItem value="2:1">2:1 (Landscape)</SelectItem>
+                                    {/* <SelectItem value="1:2">1:2 (Portrait)</SelectItem>
+                                    <SelectItem value="2:1">2:1 (Landscape)</SelectItem> */}
                                 </SelectContent>
                             </Select>
 

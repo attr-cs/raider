@@ -167,50 +167,7 @@ app.use(cors());
 app.use(express.json());
 
 connectDb();
-// pollination 
-// https://image.pollinations.ai/prompt/water%20drop?width=1024&height=900&seed=4245&nologo=true&enhance=true&model=turbo
-//  models = flux and turbo
-// gives response in streaming image
 
-// websim ai
-// giver response like this
-// {
-//   "url": "https://page-images.websim.ai/laksjdsdfsasdsjlaskdjdfsdfsdfldsfkasj_b76f49d527dda.jpg"
-// }
-// const axios = require('axios');
-// let data = '{"project_id":"kx0m131_rzz66qb2xoy7","prompt":"cute cat","aspect_ratio":"1:1"}';
-
-// let config = {
-//   method: 'post',
-//   maxBodyLength: Infinity,
-//   url: 'https://websim.ai/api/v1/inference/run_image_generation',
-//   headers: { 
-//     'accept': '*/*', 
-//     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7', 
-//     'content-type': 'text/plain;charset=UTF-8', 
-//     'origin': 'https://websim.ai', 
-//     'priority': 'u=1, i', 
-//     'referer': 'https://websim.ai/@ISWEARIAMNOTADDICTEDTOPILLOW/ai-image-prompt-generator', 
-//     'sec-ch-ua': '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"', 
-//     'sec-ch-ua-mobile': '?0', 
-//     'sec-ch-ua-platform': '"Windows"', 
-//     'sec-fetch-dest': 'empty', 
-//     'sec-fetch-mode': 'cors', 
-//     'sec-fetch-site': 'same-origin', 
-//     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36', 
-//     'websim-flags': '', 
-//     'Cookie': 'theme=auto; nosleep=1; ph_phc_VHMOlrdxAbgSZHeF0SdSf07LZLRLAg5pZuTHkJGn050_posthog=%7B%22distinct_id%22%3A%2201955b70-d715-730e-a05e-c9049e7ec2cb%22%2C%22%24sesid%22%3A%5B1740996062046%2C%2201955b70-d70f-75f9-bbfc-0d388d74c02d%22%2C1740995876623%5D%7D'
-//   },
-//   data : data
-// };
-
-// axios.request(config)
-// .then((response) => {
-//   console.log(JSON.stringify(response.data));
-// })
-// .catch((error) => {
-//   console.log(error);
-// });
 
 app.post('/generate-fast', async (req, res) => {
   try {
@@ -365,144 +322,148 @@ app.get("/gallery", async (req, res) => {
 });
 
 
-app.get("/uploadImage", async (req, res) => {
-  try {
-    // Fetch the specific image by ID
-    const image = await Image.findById("67c5321c3021865a3c21b5f8");
-
-    if (!image || !image.imgbbUrl) {
-      return res.status(404).json({ success: false, message: "Image not found in MongoDB!" });
-    }
-
-    const imageUrl = image.imgbbUrl;
-
-    // ✅ Fetch the Image Data as a Buffer
-    const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-
-    const arrayBuffer = await response.arrayBuffer();
-    const base64Image = Buffer.from(arrayBuffer).toString("base64");
-
-    // ✅ Upload to ImgBB
-    const formData = new URLSearchParams();
-    formData.append("image", base64Image);
-
-    const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=78026bbefd12af05a47cbdfffe141f83`, {
-      method: "POST",
-      body: formData,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
-
-    const imgbbData = await imgbbResponse.json();
-
-    if (imgbbData.success) {
-      // ✅ Update MongoDB with new fields
-      const updatedImage = await Image.findByIdAndUpdate(
-        image._id,
-        {
-          newImageUrl: imgbbData.data.url,
-          imgbbId: imgbbData.data.id,
-          displayUrl: imgbbData.data.display_url,
-          thumbnailUrl: imgbbData.data.thumb.url,
-        },
-        { new: true } // ✅ Ensures the updated document is returned
-      );
-
-      return res.json({
-        success: true,
-        message: "Image updated successfully!",
-        oldImageUrl: image.imgbbUrl,
-        newImageUrl: updatedImage.newImageUrl,
-        imgbbId: updatedImage.imgbbId,
-        displayUrl: updatedImage.displayUrl,
-        thumbnailUrl: updatedImage.thumbnailUrl,
-        updatedRecord: updatedImage, // ✅ Returns the updated document
-      });
-    } else {
-      return res.status(400).json({ success: false, message: "Failed to upload image!", error: imgbbData });
-    }
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
-  }
-});
-app.get("/updateAllImages", async (req, res) => {
-  try {
-    const images = await Image.find(); // Fetch all records
-    let updatedCount = 0;
-    let failedCount = 0;
-    let recordNumber = 1; // ✅ Track record number
-
-    // ✅ Iterate through each image record
-    for (const image of images) {
-      console.log(`Processing Record #${recordNumber} - ID: ${image._id}`);
-
-      if (!image.imgbbUrl) {
-        console.log(`❌ Record #${recordNumber} Skipped: No imgbbUrl found`);
-        failedCount++;
-        recordNumber++;
-        continue;
-      }
-
-      try {
-        // Fetch the image data
-        const response = await fetch(image.imgbbUrl);
-        if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-
-        const arrayBuffer = await response.arrayBuffer();
-        const base64Image = Buffer.from(arrayBuffer).toString("base64");
-
-        // ✅ Upload to ImgBB
-        const formData = new URLSearchParams();
-        formData.append("image", base64Image);
-
-        const imgbbResponse = await fetch(
-          `https://api.imgbb.com/1/upload?key=78026bbefd12af05a47cbdfffe141f83`,
-          {
-            method: "POST",
-            body: formData,
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          }
-        );
-
-        const imgbbData = await imgbbResponse.json();
-
-        if (imgbbData.success) {
-          // ✅ Update MongoDB with new fields
-          await Image.findByIdAndUpdate(image._id, {
-            newImageUrl: imgbbData.data.url,
-            imgbbId: imgbbData.data.id,
-            displayUrl: imgbbData.data.display_url,
-            thumbnailUrl: imgbbData.data.thumb.url,
-          });
-
-          updatedCount++;
-          console.log(`✅ Record #${recordNumber} Updated Successfully`);
-        } else {
-          failedCount++;
-          console.log(`❌ Record #${recordNumber} Failed to Upload`);
-        }
-      } catch (err) {
-        failedCount++;
-        console.log(`❌ Record #${recordNumber} Error: ${err.message}`);
-      }
-
-      recordNumber++; // ✅ Increment record number
-    }
-
-    console.log(`🎉 Bulk Update Completed! ✅ Updated: ${updatedCount} ❌ Failed: ${failedCount}`);
-
-    return res.json({
-      success: true,
-      message: "Bulk update completed!",
-      totalRecords: images.length,
-      updatedRecords: updatedCount,
-      failedRecords: failedCount,
-    });
-  } catch (error) {
-    console.error("❌ Internal Server Error:", error.message);
-    return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
-  }
-});
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🔥 Server running on http://localhost:${PORT}`));
+
+
+
+
+// app.get("/uploadImage", async (req, res) => {
+//   try {
+//     // Fetch the specific image by ID
+//     const image = await Image.findById("67c5321c3021865a3c21b5f8");
+
+//     if (!image || !image.imgbbUrl) {
+//       return res.status(404).json({ success: false, message: "Image not found in MongoDB!" });
+//     }
+
+//     const imageUrl = image.imgbbUrl;
+
+//     // ✅ Fetch the Image Data as a Buffer
+//     const response = await fetch(imageUrl);
+//     if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+
+//     const arrayBuffer = await response.arrayBuffer();
+//     const base64Image = Buffer.from(arrayBuffer).toString("base64");
+
+//     // ✅ Upload to ImgBB
+//     const formData = new URLSearchParams();
+//     formData.append("image", base64Image);
+
+//     const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=78026bbefd12af05a47cbdfffe141f83`, {
+//       method: "POST",
+//       body: formData,
+//       headers: { "Content-Type": "application/x-www-form-urlencoded" },
+//     });
+
+//     const imgbbData = await imgbbResponse.json();
+
+//     if (imgbbData.success) {
+//       // ✅ Update MongoDB with new fields
+//       const updatedImage = await Image.findByIdAndUpdate(
+//         image._id,
+//         {
+//           newImageUrl: imgbbData.data.url,
+//           imgbbId: imgbbData.data.id,
+//           displayUrl: imgbbData.data.display_url,
+//           thumbnailUrl: imgbbData.data.thumb.url,
+//         },
+//         { new: true } // ✅ Ensures the updated document is returned
+//       );
+
+//       return res.json({
+//         success: true,
+//         message: "Image updated successfully!",
+//         oldImageUrl: image.imgbbUrl,
+//         newImageUrl: updatedImage.newImageUrl,
+//         imgbbId: updatedImage.imgbbId,
+//         displayUrl: updatedImage.displayUrl,
+//         thumbnailUrl: updatedImage.thumbnailUrl,
+//         updatedRecord: updatedImage, // ✅ Returns the updated document
+//       });
+//     } else {
+//       return res.status(400).json({ success: false, message: "Failed to upload image!", error: imgbbData });
+//     }
+//   } catch (error) {
+//     return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+//   }
+// });
+// app.get("/updateAllImages", async (req, res) => {
+//   try {
+//     const images = await Image.find(); // Fetch all records
+//     let updatedCount = 0;
+//     let failedCount = 0;
+//     let recordNumber = 1; // ✅ Track record number
+
+//     // ✅ Iterate through each image record
+//     for (const image of images) {
+//       console.log(`Processing Record #${recordNumber} - ID: ${image._id}`);
+
+//       if (!image.imgbbUrl) {
+//         console.log(`❌ Record #${recordNumber} Skipped: No imgbbUrl found`);
+//         failedCount++;
+//         recordNumber++;
+//         continue;
+//       }
+
+//       try {
+//         // Fetch the image data
+//         const response = await fetch(image.imgbbUrl);
+//         if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+
+//         const arrayBuffer = await response.arrayBuffer();
+//         const base64Image = Buffer.from(arrayBuffer).toString("base64");
+
+//         // ✅ Upload to ImgBB
+//         const formData = new URLSearchParams();
+//         formData.append("image", base64Image);
+
+//         const imgbbResponse = await fetch(
+//           `https://api.imgbb.com/1/upload?key=78026bbefd12af05a47cbdfffe141f83`,
+//           {
+//             method: "POST",
+//             body: formData,
+//             headers: { "Content-Type": "application/x-www-form-urlencoded" },
+//           }
+//         );
+
+//         const imgbbData = await imgbbResponse.json();
+
+//         if (imgbbData.success) {
+//           // ✅ Update MongoDB with new fields
+//           await Image.findByIdAndUpdate(image._id, {
+//             newImageUrl: imgbbData.data.url,
+//             imgbbId: imgbbData.data.id,
+//             displayUrl: imgbbData.data.display_url,
+//             thumbnailUrl: imgbbData.data.thumb.url,
+//           });
+
+//           updatedCount++;
+//           console.log(`✅ Record #${recordNumber} Updated Successfully`);
+//         } else {
+//           failedCount++;
+//           console.log(`❌ Record #${recordNumber} Failed to Upload`);
+//         }
+//       } catch (err) {
+//         failedCount++;
+//         console.log(`❌ Record #${recordNumber} Error: ${err.message}`);
+//       }
+
+//       recordNumber++; // ✅ Increment record number
+//     }
+
+//     console.log(`🎉 Bulk Update Completed! ✅ Updated: ${updatedCount} ❌ Failed: ${failedCount}`);
+
+//     return res.json({
+//       success: true,
+//       message: "Bulk update completed!",
+//       totalRecords: images.length,
+//       updatedRecords: updatedCount,
+//       failedRecords: failedCount,
+//     });
+//   } catch (error) {
+//     console.error("❌ Internal Server Error:", error.message);
+//     return res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+//   }
+// });

@@ -79,7 +79,7 @@ const Uncensored = () => {
             setSeed(Date.now());
             const backendImageUrl = `${import.meta.env.VITE_POLLINATION_URL}/${encodeURIComponent(
                 prompt
-            )}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true&model=${model}`;
+            )}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true&private=true&safe=false&model=${model}`;
             const imageResponse = await fetch(backendImageUrl);
 
             if (!imageResponse.ok) {

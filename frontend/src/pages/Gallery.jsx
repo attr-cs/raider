@@ -14,6 +14,7 @@ const GalleryPage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState({});
   const { toast } = useToast();
 
   // Fetch images from the backend
@@ -23,8 +24,15 @@ const GalleryPage = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/gallery?page=${page}&limit=30`);
       const data = await response.json();
+     
       setImages((prevImages) => {
-        const uniqueImages = [...new Map([...prevImages, ...data.images].map(img => [img._id, img])).values()];
+        const uniqueImages = [...new Map([...prevImages, ...data.images].map(img => {
+          // Set initial loading state to true for new images
+          if (!imageLoading[img._id]) {
+            setImageLoading(prevState => ({ ...prevState, [img._id]: true }));
+          }
+          return [img._id, img];
+        })).values()];
         return uniqueImages;
       });
       setTotalPages(data.totalPages);
@@ -79,7 +87,7 @@ const GalleryPage = () => {
 
             {/* Image */}
             <img
-              src={image.thumbnailUrl}
+              src={image.displayUrl}
               alt={image.prompt}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
               loading="lazy"
@@ -91,7 +99,7 @@ const GalleryPage = () => {
               size="icon"
               className="absolute top-2 left-2 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/75 text-white rounded-full p-0 z-10"
               onClick={async () => {
-                if (!image.displayUrl) {
+                if (!image.newImageUrl) {
                   toast({
                       title: "Error",
                       description: "No image available to download.",
@@ -101,7 +109,7 @@ const GalleryPage = () => {
               }
           
               try {
-                  const response = await fetch(image.displayUrl);
+                  const response = await fetch(image.newImageUrl);
                   const blob = await response.blob(); // Convert response to Blob
                   const localUrl = URL.createObjectURL(blob); // Create a local object URL
           
@@ -222,12 +230,12 @@ const GalleryPage = () => {
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         
         <DialogContent className={`max-w-4xl border-gray-200  border-none min-h-[300px] flex items-center justify-center bg-black`}>
-          {loading && <Loader className="animate-spin w-10 h-10 text-gray-300" />}
+          {imageLoading[selectedImage._id] && <Loader className="animate-spin w-10 h-10 text-gray-300" />}
           <img
-            src={selectedImage.displayUrl}
+            src={selectedImage.newImageUrl}
             alt={selectedImage.prompt}
-            className={`w-full h-auto max-h-[80vh] object-contain ${loading ? "hidden" : "block"}`}
-            onLoad={() => setLoading(false)}
+            className={`w-full h-auto max-h-[80vh] object-contain ${imageLoading[selectedImage._id] ? "hidden" : "block"}`}
+            onLoad={() => setImageLoading(prevState => ({ ...prevState, [selectedImage._id]: false }))}
           />
         </DialogContent>
       </Dialog>
