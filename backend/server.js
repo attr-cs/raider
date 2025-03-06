@@ -159,9 +159,6 @@ const axios = require("axios");
 const connectDb = require("./config/db");
 const Image = require("./models/Image");
 
-  
-  const fs = require("fs");
-
 const app = express();
 app.use(cors());
 app.use(express.json());
