@@ -272,7 +272,7 @@ app.get("/generate-image", async (req, res) => {
     }
 
     // Construct the URL for the Imagine2 API
-    const imageUrl = `https://api.airforce/v1/imagine2?prompt=${encodeURIComponent(prompt)}&size=${size}&seed=${seed}&model=${model}`;
+    const imageUrl = `https://api.airforce/v1/imagine?prompt=${encodeURIComponent(prompt)}&size=${size}&seed=${seed}&model=${model}`;
 
     // Fetch the image from the Imagine2 API
     const response = await axios.get(imageUrl, {
